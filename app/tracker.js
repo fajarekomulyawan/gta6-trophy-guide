@@ -1,52 +1,102 @@
-// Tracker state for Leonida Legend: which trophies are earned, plus the spoiler-safe setting.
-// Progress lives in localStorage so it survives reloads, and can be exported to a JSON file
-// and imported back on any machine. Earned trophies are stored by their official list id.
+// tracker.js — the tracker's progress state: what is earned, whether
+// spoiler-safe mode is on, and moving that state in and out of the browser.
+// State lives in localStorage only; export downloads it as a JSON file and
+// import reads such a file back.
 
-const PROGRESS_KEY = 'leonida-legend-progress-v1';
-const SPOILER_KEY = 'leonida-legend-spoiler-safe';
+const STORAGE_KEY = 'leonidaLegend.progress.v1';
 
-export function loadEarned() {
+export function defaultState() {
+  return { earned: [], spoilerSafe: false };
+}
+
+export function loadState() {
   try {
-    const raw = JSON.parse(localStorage.getItem(PROGRESS_KEY) ?? '[]');
-    return new Set(Array.isArray(raw) ? raw.filter((n) => Number.isInteger(n)) : []);
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    const parsed = JSON.parse(raw);
+    if (!parsed || !Array.isArray(parsed.earned)) return defaultState();
+    return {
+      earned: parsed.earned.filter((id) => Number.isInteger(id)),
+      spoilerSafe: parsed.spoilerSafe === true,
+    };
   } catch {
-    return new Set();
+    return defaultState();
   }
 }
 
-export function saveEarned(earned) {
-  localStorage.setItem(PROGRESS_KEY, JSON.stringify([...earned]));
+export function saveState(state) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // Storage can be unavailable (private mode, quota); the tracker still
+    // works for the session, it just cannot persist.
+  }
 }
 
-export function loadSpoilerSafe() {
-  return localStorage.getItem(SPOILER_KEY) === '1';
+export function isEarned(state, id) {
+  return state.earned.includes(id);
 }
 
-export function saveSpoilerSafe(on) {
-  localStorage.setItem(SPOILER_KEY, on ? '1' : '0');
+export function setEarned(state, id, on) {
+  const has = isEarned(state, id);
+  if (on && !has) state.earned.push(id);
+  if (!on && has) state.earned = state.earned.filter((x) => x !== id);
+  saveState(state);
 }
 
-// Download the current progress as a small JSON file the reader keeps.
-export function exportProgress(earned) {
-  const payload = JSON.stringify({ app: 'leonida-legend', version: 1, earned: [...earned].sort((a, b) => a - b) }, null, 2);
+export function setSpoilerSafe(state, on) {
+  state.spoilerSafe = on === true;
+  saveState(state);
+}
+
+export function progressOf(state, trophies) {
+  const byGrade = {};
+  let earnedCount = 0;
+  for (const t of trophies) {
+    if (!byGrade[t.grade]) byGrade[t.grade] = { earned: 0, total: 0 };
+    byGrade[t.grade].total += 1;
+    if (isEarned(state, t.id)) {
+      byGrade[t.grade].earned += 1;
+      earnedCount += 1;
+    }
+  }
+  const total = trophies.length;
+  return {
+    earnedCount,
+    total,
+    pct: total ? Math.round((earnedCount / total) * 100) : 0,
+    byGrade,
+  };
+}
+
+export function exportProgress(state) {
+  const payload = JSON.stringify(
+    { app: 'leonida-legend', version: 1, earned: state.earned, spoilerSafe: state.spoilerSafe },
+    null,
+    2,
+  );
+  const blob = new Blob([payload], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([payload], { type: 'application/json' }));
+  a.href = url;
   a.download = 'leonida-legend-progress.json';
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(a.href);
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-// Read an exported progress file back. Accepts this app's { earned: [ids] } object or a bare
-// array, and matches entries by trophy id or, failing that, by official name.
-export async function importProgress(file, trophies) {
-  const data = JSON.parse(await file.text());
-  const list = Array.isArray(data) ? data : data.earned;
-  if (!Array.isArray(list)) throw new Error('no earned list in file');
-  const byName = new Map(trophies.map((t) => [t.name, t.id]));
-  const ids = new Set();
-  for (const item of list) {
-    if (Number.isInteger(item) && trophies.some((t) => t.id === item)) ids.add(item);
-    else if (typeof item === 'string' && byName.has(item)) ids.add(byName.get(item));
-  }
-  return ids;
+export function importProgress(file) {
+  return file.text().then((text) => {
+    const parsed = JSON.parse(text);
+    if (!parsed || !Array.isArray(parsed.earned)) {
+      throw new Error('That file does not hold Leonida Legend progress.');
+    }
+    const state = {
+      earned: parsed.earned.filter((id) => Number.isInteger(id)),
+      spoilerSafe: parsed.spoilerSafe === true,
+    };
+    saveState(state);
+    return state;
+  });
 }

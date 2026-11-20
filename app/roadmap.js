@@ -1,40 +1,41 @@
-// The platinum roadmap: four stages built from the official trophy descriptions.
-// Stage text is this guide's own; the trophies in each stage come from their "stage" field
-// in data/trophies.json, and missable warnings are rendered inline from their "missable" flag.
+// roadmap.js — the platinum roadmap: four stages, in the order a player
+// should work them, with the reasoning for each stage. Which trophies sit in
+// which stage is each trophy's own "stage" field in data/trophies.json,
+// assigned from the official descriptions.
 
 export const STAGES = [
   {
     stage: 1,
-    title: 'Stage 1 — Story playthrough',
+    title: 'Stage 1 — The Story, With One Warning',
     blurb:
-      'Play the campaign in chapter order: the opening mission, Chapters 1 to 4, the named story missions and the finale. ' +
-      'Story trophies pop as chapters and missions complete. Pause for the one flagged missable that lives in this stage: ' +
-      'the Chapter 1 meditation behind Positive Mental Attitude. There is no mission replay, so keep a manual save at ' +
-      'every chapter break, and start the habits that pay off later — scan vehicles, tag WAiNK spots, sample each activity once.',
+      'Play the campaign in chapter order and take every story trophy as it comes. ' +
+      'One moment in Chapter 1 is the whole list\u2019s only point of no return: the meditation at Jason\u2019s house ' +
+      '(Positive Mental Attitude) can be skipped, and with no mission replay there is no going back for it — do it when it is offered, ' +
+      'and keep a manual save at every chapter break. Start the cheap habits here too: scan new vehicles and tag WAiNK spots as you pass them.',
   },
   {
     stage: 2,
-    title: 'Stage 2 — Collectibles & exploration',
+    title: 'Stage 2 — Collectibles & The Big Sweep',
     blurb:
-      'Sweep Leonida for the collection trophies: complete card sets, WAiNK locations, vehicle discoveries and Scooter Bros ' +
-      'registrations, plus all 52 areas for The Goodtime State. The meditation spots left over from Stage 1 are finished ' +
-      'here too. Work region by region and let the map fill in as you go.',
+      'With the map open, sweep Leonida region by region: finish the meditation spots, complete three Collectible Card sets, ' +
+      'WAiNK at 100 locations, discover 100 vehicles, register 10 of them with Scooter Bros, and set foot in all 52 areas. ' +
+      'These overlap heavily — one thorough pass per region moves all of them at once.',
   },
   {
     stage: 3,
-    title: 'Stage 3 — Activities & side content',
+    title: 'Stage 3 — Activities, Strands & Feats',
     blurb:
-      'Everything the open world offers: shooting-range golds, drone races and 20 race wins, 250 stunts, 50 challenges, ' +
-      'the stranger and character strands (Andy, Kenton, Billy, Randy, Tyrone, Bret), the robbery ladder from shops to ' +
-      'bank vaults, and every one-off feat. Free-roam continues after the credits, so nothing here can be locked away.',
+      'Everything repeatable lives here: gold medals in all 42 Shooting Range challenges, 250 stunts, the drone races and 20 race wins, ' +
+      'the five character strands plus Strangers & Freaks, the robbery feats, 50 challenges and the one-off set pieces like the VCIA departure. ' +
+      'None of it can be missed, so work it at your own pace and tick off whatever your Stage 2 sweep left behind.',
   },
   {
     stage: 4,
-    title: 'Stage 4 — 100% and the platinum',
+    title: 'Stage 4 — 100% Completion & The Platinum',
     blurb:
-      'This list has no online trophies — all 55 are offline, so there is no multiplayer stage to plan. Close out the ' +
-      '100% Completion checklist (A Long Road), the longest single requirement, and the moment the other 54 trophies ' +
-      'are all earned, the platinum — Vice Got a Price! — is awarded automatically.',
+      'The long pole: the 100% Completion checklist (A Long Road), which asks for roughly 60% of everything in the game and only becomes ' +
+      'viewable after the story. When the last of the other 54 trophies lands, the platinum (Vice Got a Price!) follows automatically. ' +
+      'Note: this trophy list contains no online trophies, so no stage of the roadmap needs an online session.',
   },
 ];
 
@@ -42,6 +43,8 @@ export function trophiesInStage(trophies, stage) {
   return trophies.filter((t) => t.stage === stage);
 }
 
-export function missablesInStage(trophies, stage) {
-  return trophies.filter((t) => t.stage === stage && t.missable);
+export function stageProgress(trophies, stage, isEarnedFn) {
+  const list = trophiesInStage(trophies, stage);
+  const earned = list.filter((t) => isEarnedFn(t.id)).length;
+  return { earned, total: list.length };
 }
