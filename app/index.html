@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leonida Legend — GTA VI Trophy Guide & Tracker</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site-head">
+  <div class="brand">
+    <h1>Leonida Legend</h1>
+    <p class="tagline">Grand Theft Auto VI · PlayStation 5 trophy guide &amp; tracker · all 55 trophies · runs fully offline</p>
+  </div>
+  <div class="progress-box">
+    <div class="progress-line"><strong id="progress-count">0 of 55 earned</strong><span id="progress-pct">0%</span></div>
+    <div class="progress-bar"><div id="progress-fill"></div></div>
+    <p id="grade-counts" class="grade-counts"></p>
+  </div>
+</header>
+
+<nav class="views" aria-label="Views">
+  <button type="button" data-view="tracker" class="view-btn active">Tracker</button>
+  <button type="button" data-view="roadmap" class="view-btn">Roadmap to Platinum</button>
+  <button type="button" data-view="missables" class="view-btn">Missables</button>
+</nav>
+
+<section class="controls" id="controls">
+  <div class="chips" id="kind-chips" aria-label="Filter by kind">
+    <button type="button" data-kind="all" class="chip active">All</button>
+    <button type="button" data-kind="story" class="chip">Story</button>
+    <button type="button" data-kind="missable" class="chip">Missable</button>
+    <button type="button" data-kind="collectibles" class="chip">Collectibles</button>
+    <button type="button" data-kind="activities" class="chip">Activities</button>
+    <button type="button" data-kind="online" class="chip">Online</button>
+  </div>
+  <label class="ctl">Grade
+    <select id="grade-filter">
+      <option value="all">All grades</option>
+      <option value="platinum">Platinum</option>
+      <option value="gold">Gold</option>
+      <option value="silver">Silver</option>
+      <option value="bronze">Bronze</option>
+    </select>
+  </label>
+  <label class="ctl grow">Search
+    <input id="search" type="search" placeholder="Search name or description">
+  </label>
+  <label class="ctl toggle"><input id="spoiler-toggle" type="checkbox"> Spoiler-safe</label>
+  <button id="export-btn" type="button">Export progress</button>
+  <label class="import-btn">Import progress <input id="import-file" type="file" accept="application/json"></label>
+</section>
+
+<main class="layout">
+  <section id="view-root" class="list-pane"></section>
+  <aside id="detail" class="detail"></aside>
+</main>
+
+<footer class="site-foot">
+  <p>Guides written for this tracker. Trophy names, descriptions and grades are the official PlayStation list;
+  every guide cites its sources — follow the links in a trophy's panel to read more. This guide works with the
+  network off and loads nothing from outside this folder.</p>
+</footer>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
