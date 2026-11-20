@@ -1,161 +1,165 @@
-// app.js — the guide's entry point: loads the trophy data, holds the UI
-// state (current view, filters, selected trophy) and wires the controls to
-// the renderers in render.js and the progress state in tracker.js.
+// app.js — Leonida Legend entry point.
+// Loads the trophy data, builds the tracker state, wires the controls, and
+// re-renders on every change. URL parameters mirror the UI state so views
+// can be linked and screenshotted: ?view=roadmap, ?view=missables,
+// ?spoiler=1, ?q=rob, ?open=28.
 
-import {
-  loadState,
-  setEarned,
-  setSpoilerSafe,
-  exportProgress,
-  importProgress,
-} from './tracker.js';
+import { createTracker } from './tracker.js';
 import {
   renderProgress,
-  renderList,
+  renderTrackerView,
+  renderRoadmapView,
+  renderMissablesView,
   renderDetail,
-  renderRoadmap,
-  renderMissables,
-  filterTrophies,
 } from './render.js';
 
-const params = new URLSearchParams(location.search);
+const els = {
+  list: document.getElementById('list-pane'),
+  detail: document.getElementById('detail-pane'),
+  progress: {
+    count: document.getElementById('progress-count'),
+    pct: document.getElementById('progress-pct'),
+    fill: document.getElementById('progress-fill'),
+    grades: document.getElementById('grade-counts'),
+  },
+  tabs: document.getElementById('view-tabs'),
+  chips: document.getElementById('kind-chips'),
+  grade: document.getElementById('grade-filter'),
+  search: document.getElementById('search'),
+  spoiler: document.getElementById('spoiler-safe'),
+  exportBtn: document.getElementById('export-btn'),
+  importFile: document.getElementById('import-file'),
+};
 
-let trophies = [];
-let state = loadState();
-let view = ['tracker', 'roadmap', 'missables'].includes(params.get('view'))
-  ? params.get('view')
-  : 'tracker';
-let selectedId = Number(params.get('open')) || 28; // default: the one missable trophy
-const filters = {
-  kind: params.get('kind') || 'all',
+const params = new URLSearchParams(location.search);
+const tracker = createTracker();
+if (params.get('spoiler') === '1') tracker.setSpoilerSafe(true);
+if (params.get('spoiler') === '0') tracker.setSpoilerSafe(false);
+
+const ui = {
+  view: ['tracker', 'roadmap', 'missables'].includes(params.get('view')) ? params.get('view') : 'tracker',
+  kind: 'all',
   grade: 'all',
   query: params.get('q') || '',
-};
-if (params.get('spoiler') === '1') state.spoilerSafe = true;
-
-const els = {
-  list: document.getElementById('trophy-list'),
-  detail: document.getElementById('detail'),
-  showing: document.getElementById('showing-line'),
-  roadmap: document.getElementById('view-roadmap'),
-  missables: document.getElementById('view-missables'),
-  tracker: document.getElementById('view-tracker'),
-  search: document.getElementById('search'),
-  grade: document.getElementById('grade-filter'),
-  spoiler: document.getElementById('spoiler-toggle'),
+  selectedId: Number.parseInt(params.get('open') || '', 10) || null,
 };
 
-function selectedTrophy() {
-  return trophies.find((t) => t.id === selectedId) || null;
+let trophies = [];
+
+function ctx() {
+  return { tracker, kind: ui.kind, grade: ui.grade, query: ui.query, selectedId: ui.selectedId };
 }
 
-function renderAll() {
-  renderProgress(state, trophies);
-
-  document.querySelectorAll('.tab').forEach((tab) => {
-    tab.classList.toggle('active', tab.dataset.view === view);
-  });
-  els.tracker.hidden = view !== 'tracker';
-  els.roadmap.hidden = view !== 'roadmap';
-  els.missables.hidden = view !== 'missables';
-
-  document.querySelectorAll('.chip').forEach((chip) => {
-    chip.classList.toggle('active', chip.dataset.kind === filters.kind);
-  });
-  els.grade.value = filters.grade;
-  if (els.search.value !== filters.query) els.search.value = filters.query;
-  els.spoiler.checked = state.spoilerSafe;
-
-  const shown = filterTrophies(trophies, filters);
-  els.showing.textContent =
-    `Showing ${shown.length} of ${trophies.length} trophies — select one to read its guide.`;
-  renderList(els.list, shown, state, selectedId);
-  renderDetail(els.detail, selectedTrophy(), state);
-  if (view === 'roadmap') renderRoadmap(els.roadmap, trophies, state);
-  if (view === 'missables') renderMissables(els.missables, trophies, state);
+function render() {
+  renderProgress(els.progress, trophies, tracker);
+  if (ui.view === 'roadmap') renderRoadmapView(els.list, trophies, ctx());
+  else if (ui.view === 'missables') renderMissablesView(els.list, trophies, ctx());
+  else renderTrackerView(els.list, trophies, ctx());
+  const selected = trophies.find((t) => t.id === ui.selectedId) || null;
+  renderDetail(els.detail, selected, ctx());
+  for (const tab of els.tabs.querySelectorAll('.tab')) {
+    tab.classList.toggle('active', tab.dataset.view === ui.view);
+  }
+  els.spoiler.checked = tracker.isSpoilerSafe();
 }
 
-/* ---------------- controls ---------------- */
+function select(id) {
+  ui.selectedId = id;
+  render();
+}
 
-document.querySelectorAll('.tab').forEach((tab) => {
-  tab.addEventListener('click', () => {
-    view = tab.dataset.view;
-    renderAll();
+function onEarnToggle(id) {
+  tracker.toggle(id);
+  render();
+}
+
+// Row clicks select a trophy; checkbox clicks toggle earned. Both panes use
+// the same delegation so roadmap and missables rows behave like tracker rows.
+function wirePane(pane) {
+  pane.addEventListener('click', (event) => {
+    const row = event.target.closest('[data-row]');
+    if (row) select(Number(row.dataset.row));
   });
+  pane.addEventListener('change', (event) => {
+    const box = event.target.closest('[data-earn]');
+    if (box) onEarnToggle(Number(box.dataset.earn));
+  });
+}
+wirePane(els.list);
+wirePane(els.detail);
+
+els.tabs.addEventListener('click', (event) => {
+  const tab = event.target.closest('[data-view]');
+  if (!tab) return;
+  ui.view = tab.dataset.view;
+  if (ui.view === 'missables' && !trophies.some((t) => t.id === ui.selectedId && t.missable)) {
+    const first = trophies.find((t) => t.missable);
+    if (first) ui.selectedId = first.id;
+  }
+  render();
 });
 
-document.querySelectorAll('.chip').forEach((chip) => {
-  chip.addEventListener('click', () => {
-    filters.kind = chip.dataset.kind;
-    view = 'tracker';
-    renderAll();
-  });
+els.chips.addEventListener('click', (event) => {
+  const chip = event.target.closest('[data-kind]');
+  if (!chip) return;
+  ui.kind = chip.dataset.kind;
+  for (const c of els.chips.querySelectorAll('.chip')) c.classList.toggle('active', c === chip);
+  if (ui.view !== 'tracker') ui.view = 'tracker';
+  render();
 });
 
 els.grade.addEventListener('change', () => {
-  filters.grade = els.grade.value;
-  renderAll();
+  ui.grade = els.grade.value;
+  if (ui.view !== 'tracker') ui.view = 'tracker';
+  render();
 });
 
 els.search.addEventListener('input', () => {
-  filters.query = els.search.value;
-  renderAll();
+  ui.query = els.search.value;
+  if (ui.view !== 'tracker') ui.view = 'tracker';
+  render();
 });
 
 els.spoiler.addEventListener('change', () => {
-  setSpoilerSafe(state, els.spoiler.checked);
-  renderAll();
+  tracker.setSpoilerSafe(els.spoiler.checked);
+  render();
 });
 
-document.getElementById('export-btn').addEventListener('click', () => {
-  exportProgress(state);
+els.exportBtn.addEventListener('click', () => {
+  const blob = new Blob([tracker.exportJSON()], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'leonida-legend-progress.json';
+  a.click();
+  URL.revokeObjectURL(url);
 });
 
-const importFile = document.getElementById('import-file');
-document.getElementById('import-btn').addEventListener('click', () => importFile.click());
-importFile.addEventListener('change', () => {
-  const file = importFile.files[0];
+els.importFile.addEventListener('change', async () => {
+  const file = els.importFile.files[0];
   if (!file) return;
-  importProgress(file)
-    .then((newState) => {
-      state = newState;
-      renderAll();
-    })
-    .catch(() => {
-      els.showing.textContent = 'That file could not be imported as Leonida Legend progress.';
-    });
-  importFile.value = '';
+  try {
+    tracker.importJSON(await file.text());
+    render();
+  } catch (err) {
+    alert(`Could not import that file: ${err.message}`);
+  }
+  els.importFile.value = '';
 });
 
-/* ---------------- shared interactions (all views) ---------------- */
+async function init() {
+  const res = await fetch('data/trophies.json');
+  const data = await res.json();
+  trophies = data.trophies;
+  els.search.value = ui.query;
+  if (ui.view === 'missables' && !trophies.some((t) => t.id === ui.selectedId)) {
+    const first = trophies.find((t) => t.missable);
+    if (first) ui.selectedId = first.id;
+  }
+  if (!trophies.some((t) => t.id === ui.selectedId)) {
+    ui.selectedId = trophies[0] ? trophies[0].id : null;
+  }
+  render();
+}
 
-document.addEventListener('change', (event) => {
-  const box = event.target.closest('[data-earn]');
-  if (!box) return;
-  setEarned(state, Number(box.dataset.earn), box.checked);
-  renderAll();
-});
-
-document.addEventListener('click', (event) => {
-  const row = event.target.closest('[data-open]');
-  if (!row || event.target.closest('[data-earn]')) return;
-  selectedId = Number(row.dataset.open);
-  view = 'tracker';
-  renderAll();
-});
-
-/* ---------------- boot ---------------- */
-
-fetch('data/trophies.json')
-  .then((res) => {
-    if (!res.ok) throw new Error(`trophies.json: ${res.status}`);
-    return res.json();
-  })
-  .then((data) => {
-    trophies = data.trophies;
-    if (!selectedTrophy()) selectedId = trophies[0].id;
-    renderAll();
-  })
-  .catch((err) => {
-    els.list.innerHTML = `<p class="note-box">The trophy data could not be loaded (${err.message}). Serve the app over HTTP — file:// pages cannot fetch the data file.</p>`;
-  });
+init();

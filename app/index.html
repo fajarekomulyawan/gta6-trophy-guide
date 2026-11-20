@@ -8,33 +8,33 @@
 </head>
 <body>
 <header class="site-header">
-  <div class="header-text">
+  <div class="brand">
     <h1>Leonida Legend</h1>
     <p class="tagline">Grand Theft Auto VI · PlayStation 5 trophy guide &amp; tracker · all 55 trophies · runs fully offline</p>
   </div>
-  <div class="progress-box" aria-live="polite">
-    <div class="progress-top"><span id="progress-count">0 of 55 earned</span><span id="progress-pct">0%</span></div>
+  <div class="progress-box" aria-label="Your progress">
+    <div class="progress-line"><strong id="progress-count">0 of 55 earned</strong><span id="progress-pct">0%</span></div>
     <div class="progress-bar"><div id="progress-fill"></div></div>
-    <div class="progress-grades" id="progress-grades"></div>
+    <div class="grade-counts" id="grade-counts"></div>
   </div>
 </header>
 
-<nav class="view-tabs" aria-label="Views">
-  <button type="button" class="tab active" data-view="tracker">Tracker</button>
-  <button type="button" class="tab" data-view="roadmap">Roadmap to Platinum</button>
-  <button type="button" class="tab" data-view="missables">Missables</button>
+<nav class="view-tabs" id="view-tabs" aria-label="Views">
+  <button type="button" data-view="tracker" class="tab active">Tracker</button>
+  <button type="button" data-view="roadmap" class="tab">Roadmap to Platinum</button>
+  <button type="button" data-view="missables" class="tab">Missables</button>
 </nav>
 
-<section class="controls" id="controls">
-  <div class="chips" role="group" aria-label="Filter by kind">
-    <button type="button" class="chip active" data-kind="all">All</button>
-    <button type="button" class="chip" data-kind="story">Story</button>
-    <button type="button" class="chip" data-kind="missable">Missable</button>
-    <button type="button" class="chip" data-kind="collectibles">Collectibles</button>
-    <button type="button" class="chip" data-kind="activities">Activities</button>
-    <button type="button" class="chip" data-kind="online">Online</button>
+<section class="controls" id="controls" aria-label="Filters and progress tools">
+  <div class="chips" id="kind-chips" role="group" aria-label="Filter by kind">
+    <button type="button" data-kind="all" class="chip active">All</button>
+    <button type="button" data-kind="story" class="chip">Story</button>
+    <button type="button" data-kind="missable" class="chip">Missable</button>
+    <button type="button" data-kind="collectibles" class="chip">Collectibles</button>
+    <button type="button" data-kind="activities" class="chip">Activities</button>
+    <button type="button" data-kind="online" class="chip">Online</button>
   </div>
-  <label class="control-label">Grade
+  <label class="control">Grade
     <select id="grade-filter">
       <option value="all">All grades</option>
       <option value="platinum">Platinum</option>
@@ -43,31 +43,21 @@
       <option value="bronze">Bronze</option>
     </select>
   </label>
-  <label class="control-label">Search
-    <input type="search" id="search" placeholder="Search name or description" autocomplete="off">
+  <label class="control grow">Search
+    <input id="search" type="search" placeholder="Search name or description" autocomplete="off">
   </label>
-  <label class="control-label check">
-    <input type="checkbox" id="spoiler-toggle"> Spoiler-safe
-  </label>
-  <button type="button" id="export-btn" class="action">Export progress</button>
-  <button type="button" id="import-btn" class="action alt">Import progress</button>
-  <input type="file" id="import-file" accept="application/json,.json" hidden>
+  <label class="control toggle"><input type="checkbox" id="spoiler-safe"> Spoiler-safe</label>
+  <button type="button" id="export-btn" class="tool-btn">Export progress</button>
+  <label class="tool-btn file-btn">Import progress<input type="file" id="import-file" accept="application/json,.json" hidden></label>
 </section>
 
-<main>
-  <section id="view-tracker" class="view">
-    <p class="showing" id="showing-line"></p>
-    <div class="tracker-layout">
-      <div id="trophy-list" class="trophy-list"></div>
-      <aside id="detail" class="detail" aria-live="polite"></aside>
-    </div>
-  </section>
-  <section id="view-roadmap" class="view" hidden></section>
-  <section id="view-missables" class="view" hidden></section>
+<main class="layout">
+  <section id="list-pane" aria-label="Trophies"></section>
+  <aside id="detail-pane" aria-label="Trophy guide"></aside>
 </main>
 
 <footer class="site-footer">
-  <p>Guides are written for this tracker in our own words; every trophy names the published sources it draws on. Trophy names and descriptions are the official PlayStation list. Progress is stored only in your browser.</p>
+  <p>Guides are written in our own words from the sources cited on each trophy. Progress is stored only in this browser.</p>
 </footer>
 
 <script type="module" src="app.js"></script>
